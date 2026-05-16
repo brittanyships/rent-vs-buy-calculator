@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rent vs. Buy Calculator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 24px 20px;
+  max-width: 680px;
+  margin: 0 auto;
+  font-weight: 400;
+}
+
+/* Progress */
+.progress { display: flex; gap: 6px; margin-bottom: 28px; }
+.pip { height: 3px; flex: 1; border-radius: 2px; background: #e5e5e5; transition: background .3s; }
+.pip.done { background: #FF6B00; }
+
+/* Step layout */
+.step { display: none; }
+.step.active { display: block; }
+.step-label { font-size: 11px; font-weight: 600; color: #FF6B00; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+.step-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.step-sub { font-size: 14px; color: #666; margin-bottom: 24px; }
+
+/* Forms */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.grid1 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 13px; font-weight: 500; color: #444; }
+.field input, .field select {
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #111;
+  background: #fff;
+  outline: none;
+}
+.field input:focus, .field select:focus { border-color: #FF6B00; }
+.hint { font-size: 11px; color: #999; margin-top: 2px; }
+.section-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .08em; border-top: 1px solid #f0f0f0; padding-top: 16px; margin: 16px 0 10px; }
+.toggle-row { display: flex; align-items: center; gap: 10px; background: #f8f8f8; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+.toggle-row label { font-size: 13px; flex: 1; cursor: pointer; }
+.toggle-row .tag { font-size: 11px; color: #888; background: #ebebeb; padding: 2px 8px; border-radius: 4px; }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: #FF6B00; cursor: pointer; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; margin-top: 24px; }
+.btn { height: 42px; padding: 0 22px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid #ddd; background: #fff; color: #111; }
+.btn:hover { background: #f5f5f5; }
+.btn.primary { background: #FF6B00; color: #fff; border-color: #FF6B00; }
+.btn.primary:hover { background: #e05f00; }
+.err { font-size: 12px; color: #c0392b; margin-top: 10px; display: none; }
+
+/* ===== AFFORDABILITY SNAPSHOT ===== */
+.snapshot { background: #f8f8f8; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; border-left: 4px solid #FF6B00; }
+.snap-label { font-size: 11px; font-weight: 600; color: #FF6B00; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.snap-headline { font-size: 14px; color: #111; line-height: 1.6; margin-bottom: 10px; font-weight: 700; }
+.snap-list { list-style: disc; margin: 0 0 12px 20px; font-size: 14px; color: #333; line-height: 1.6; font-weight: 400; }
+.snap-list li { margin-bottom: 6px; font-weight: 400; }
+.snap-disclaimer { font-size: 12px; color: #888; line-height: 1.6; font-weight: 400; }
+/* ===== END SNAPSHOT ===== */
+
+/* Income strip */
+.income-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: #f8f8f8; border-radius: 8px; padding: 12px 14px; }
+.sc-label { font-size: 11px; color: #888; margin-bottom: 3px; }
+.sc-val { font-size: 20px; font-weight: 600; color: #111; }
+.sc-sub { font-size: 11px; color: #999; margin-top: 2px; }
+
+/* Compare cards */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.opt-card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px; }
+.opt-card.ok { border-color: #1A5EAB; border-width: 2px; }
+.opt-card.warn { border-color: #FF6B00; border-width: 2px; }
+.opt-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.opt-title { font-size: 15px; font-weight: 600; }
+.badge { font-size: 11px; padding: 3px 9px; border-radius: 5px; font-weight: 600; }
+.badge.green { background: #e6f4ea; color: #1e6b35; }
+.badge.orange { background: #fff3e0; color: #b36200; }
+.badge.red { background: #fdecea; color: #a32d2d; }
+.line { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f3f3f3; font-size: 13px; }
+.line .lbl { color: #666; }
+.line .val { font-weight: 500; }
+.total-line { display: flex; justify-content: space-between; padding: 10px 0 6px; border-top: 1px solid #ddd; font-size: 14px; font-weight: 600; margin-top: 4px; }
+.leftover { background: #f8f8f8; border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+.lo-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+.lo-val { font-size: 19px; font-weight: 600; }
+.lo-pct { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* Rule box */
+.rule-box { background: #f8f8f8; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; }
+.rule-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #999; margin-bottom: 8px; }
+.rule-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.rule-row .rl { color: #666; font-weight: 700; }
+.rule-row .rv { font-weight: 600; }
+.rule-note { font-size: 13px; color: #444; line-height: 1.6; margin-top: 10px; }
+.rule-note strong { font-weight: 700; }
+
+/* Glossary */
+.edu-btn { font-size: 13px; color: #1A5EAB; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; text-decoration: underline; }
+.edu-box { display: none; margin-top: 12px; border: 1px solid #eee; border-radius: 10px; padding: 16px; }
+.edu-box.open { display: block; }
+.edu-term { margin-bottom: 14px; }
+.edu-term:last-child { margin-bottom: 0; }
+.et-name { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 3px; }
+.et-def { font-size: 13px; color: #555; line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<div class="progress">
+  <div class="pip done" id="p1"></div>
+  <div class="pip" id="p2"></div>
+  <div class="pip" id="p3"></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step active" id="step1">
+  <div class="step-label">Step 1 of 3</div>
+  <div class="step-title">Your income</div>
+  <div class="step-sub">Enter what actually hits your bank account each month after all taxes and deductions.</div>
+  <div class="grid1">
+    <div class="field">
+      <label>Monthly take-home pay</label>
+      <input type="text" inputmode="numeric" id="takeHomeInput" placeholder="e.g. 4200">
+      <span class="hint">This is your paycheck amount after taxes, insurance, 401(k), and any other deductions — the number you actually have to work with.</span>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn primary" onclick="goStep2()">Next: Housing details →</button>
+  </div>
+  <div class="err" id="err1">Please enter your monthly take-home pay.</div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step" id="step2">
+  <div class="step-label">Step 2 of 3</div>
+  <div class="step-title">The real cost of buying &amp; renting</div>
+  <div class="step-sub">Complete all fields below. Estimates are noted where helpful.</div>
+
+  <div class="section-label">Buying a home</div>
+  <div class="grid2">
+    <div class="field"><label>Home price</label><input type="number" id="homePrice" placeholder="e.g. 250000" min="0"></div>
+    <div class="field"><label>Down payment (%)</label><input type="number" id="downPct" placeholder="e.g. 20" min="0" max="100"><span class="hint">Under 20% typically requires PMI</span></div>
+  </div>
+  <div class="grid2">
+    <div class="field"><label>Interest rate (%)</label><input type="number" id="rate" placeholder="e.g. 7.0" min="0" step="0.1"></div>
+    <div class="field"><label>Loan term</label><select id="term"><option value="30">30 years</option><option value="20">20 years</option><option value="15">15 years</option></select></div>
+  </div>
+  <div class="grid2">
+    <div class="field"><label>Property tax rate (%/yr)</label><input type="number" id="taxRate" placeholder="e.g. 1.1" min="0" step="0.1"><span class="hint">U.S. avg ~1.1%. Check your county.</span></div>
+    <div class="field"><label>Homeowner's insurance ($/yr)</label><input type="number" id="insurance" placeholder="e.g. 1800" min="0"><span class="hint">U.S. avg ~$1,500–$2,000/yr</span></div>
+  </div>
+  <div class="grid2">
+    <div class="field"><label>HOA ($/mo) — if any</label><input type="number" id="hoa" placeholder="0" min="0"></div>
+    <div class="field"><label>Other monthly costs</label><input type="number" id="otherBuy" placeholder="0" min="0"><span class="hint">Maintenance, utilities, etc.</span></div>
+  </div>
+  <div class="toggle-row">
+    <input type="checkbox" id="pmiToggle" onchange="togglePMI()">
+    <label for="pmiToggle"><strong>Include PMI</strong> — Private Mortgage Insurance</label>
+    <span class="tag">~0.5–1% of loan/yr</span>
+  </div>
+  <div class="field" id="pmiField" style="display:none;margin-bottom:10px">
+    <label>PMI amount ($/mo)</label>
+    <input type="number" id="pmi" placeholder="e.g. 150" min="0">
+  </div>
+
+  <div class="section-label">Renting</div>
+  <div class="grid2">
+    <div class="field"><label>Monthly rent</label><input type="number" id="rent" placeholder="e.g. 1400" min="0"></div>
+    <div class="field"><label>Renter's insurance ($/mo)</label><input type="number" id="rentersIns" placeholder="e.g. 15" min="0"><span class="hint">Avg ~$15/mo. Often forgotten.</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="goStep(1)">← Back</button>
+    <button class="btn primary" onclick="goStep3()">See my results →</button>
+  </div>
+  <div class="err" id="err2">Please fill in home price, down payment %, interest rate, property tax rate, and monthly rent.</div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step" id="step3">
+  <div class="step-label">Step 3 of 3</div>
+  <div class="step-title">Affordability Summary</div>
+  <div id="results"></div>
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn" onclick="restart()">← Start over</button>
+  </div>
+</div>
+
+<script>
+function cleanNum(id){return parseFloat(document.getElementById(id).value.replace(/[^0-9.]/g,''))||0;}
+function togglePMI(){
+  document.getElementById('pmiField').style.display=document.getElementById('pmiToggle').checked?'block':'none';
+}
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  for(let i=1;i<=3;i++) document.getElementById('p'+i).classList.toggle('done',i<=n);
+  window.scrollTo(0,0);
+}
+function goStep2(){
+  const th=cleanNum('takeHomeInput');
+  if(!th||th<=0){document.getElementById('err1').style.display='block';return;}
+  document.getElementById('err1').style.display='none';
+  goStep(2);
+}
+function goStep3(){
+  const hp=parseFloat(document.getElementById('homePrice').value);
+  const dp=document.getElementById('downPct').value;
+  const ir=parseFloat(document.getElementById('rate').value);
+  const tr=document.getElementById('taxRate').value;
+  const rnt=parseFloat(document.getElementById('rent').value);
+  if(!hp||dp===''||!ir||tr===''||!rnt){document.getElementById('err2').style.display='block';return;}
+  document.getElementById('err2').style.display='none';
+  buildResults();
+  goStep(3);
+}
+function fmt(n){return Math.round(n).toLocaleString();}
+
+function buildResults(){
+  const takeHome=cleanNum('takeHomeInput');
+  const maxHousing=Math.round(takeHome*.28);
+  const maxDebt=Math.round(takeHome*.36);
+
+  const hp=parseFloat(document.getElementById('homePrice').value)||0;
+  const dpPct=parseFloat(document.getElementById('downPct').value)||0;
+  const ir=parseFloat(document.getElementById('rate').value)||0;
+  const termYr=parseInt(document.getElementById('term').value)||30;
+  const taxRate=parseFloat(document.getElementById('taxRate').value)||0;
+  const insYr=parseFloat(document.getElementById('insurance').value)||0;
+  const hoa=parseFloat(document.getElementById('hoa').value)||0;
+  const otherBuy=parseFloat(document.getElementById('otherBuy').value)||0;
+  const pmiOn=document.getElementById('pmiToggle').checked;
+  const pmi=pmiOn?(parseFloat(document.getElementById('pmi').value)||0):0;
+  const rent=parseFloat(document.getElementById('rent').value)||0;
+  const rentersIns=parseFloat(document.getElementById('rentersIns').value)||0;
+
+  const loanAmt=hp*(1-dpPct/100);
+  const mo=ir/100/12;
+  const n=termYr*12;
+  const pi=loanAmt>0&&mo>0?loanAmt*(mo*Math.pow(1+mo,n))/(Math.pow(1+mo,n)-1):0;
+  const firstInt=Math.round(loanAmt*mo);
+  const firstPrin=Math.round(pi)-firstInt;
+  const propTaxMo=Math.round(hp*(taxRate/100)/12);
+  const insMo=Math.round(insYr/12);
+  const totalBuy=Math.round(pi)+propTaxMo+insMo+Math.round(hoa)+Math.round(pmi)+Math.round(otherBuy);
+  const totalRent=Math.round(rent+rentersIns);
+
+  const buyPct=takeHome>0?Math.round(totalBuy/takeHome*100):0;
+  const rentPct=takeHome>0?Math.round(totalRent/takeHome*100):0;
+  const buyLeft=takeHome-totalBuy;
+  const rentLeft=takeHome-totalRent;
+  const buyOk=totalBuy<=maxHousing;
+  const rentOk=totalRent<=maxHousing;
+
+  function badge(ok,pct){
+    if(ok) return '<span class="badge green">Within budget</span>';
+    if(pct<=35) return '<span class="badge orange">Slightly over</span>';
+    return '<span class="badge red">Over budget</span>';
+  }
+
+  const html=`
+  <div class="snapshot">
+    <div class="snap-label">Your affordability snapshot</div>
+    <p class="snap-headline">Based on your take-home pay of $${fmt(takeHome)}/mo, your recommended max housing budget is $${fmt(maxHousing)}/mo.</p>
+    <ul class="snap-list">
+      <li>Buying would cost $${fmt(totalBuy)}/mo — that's ${buyPct}% of your take-home pay. ${buyOk?'This is within the 28% guideline.':'This exceeds the 28% guideline.'}</li>
+      <li>Renting would cost $${fmt(totalRent)}/mo — that's ${rentPct}% of your take-home pay. ${rentOk?'This is within the 28% guideline.':'This exceeds the 28% guideline.'}</li>
+    </ul>
+    <p class="snap-disclaimer">These calculations are estimates only and do not constitute financial advice. Please consult with a qualified financial professional for personalized guidance.</p>
+  </div>
+
+  <div class="income-strip">
+    <div class="stat-card"><div class="sc-label">Monthly take-home pay</div><div class="sc-val">$${fmt(takeHome)}</div><div class="sc-sub">after all deductions</div></div>
+    <div class="stat-card"><div class="sc-label">28% housing limit</div><div class="sc-val">$${fmt(maxHousing)}</div><div class="sc-sub">max recommended</div></div>
+  </div>
+
+  <div class="compare">
+    <div class="opt-card ${buyOk?'ok':'warn'}">
+      <div class="opt-head"><span class="opt-title">Buying</span>${badge(buyOk,buyPct)}</div>
+      <div class="line"><span class="lbl">Principal</span><span class="val">$${fmt(firstPrin)}/mo</span></div>
+      <div class="line"><span class="lbl">Interest</span><span class="val">$${fmt(firstInt)}/mo</span></div>
+      <div class="line"><span class="lbl">Property tax</span><span class="val">$${fmt(propTaxMo)}/mo</span></div>
+      <div class="line"><span class="lbl">Homeowner's ins.</span><span class="val">$${fmt(insMo)}/mo</span></div>
+      ${hoa>0?`<div class="line"><span class="lbl">HOA</span><span class="val">$${fmt(hoa)}/mo</span></div>`:''}
+      ${pmi>0?`<div class="line"><span class="lbl">PMI</span><span class="val">$${fmt(pmi)}/mo</span></div>`:''}
+      ${otherBuy>0?`<div class="line"><span class="lbl">Other</span><span class="val">$${fmt(otherBuy)}/mo</span></div>`:''}
+      <div class="total-line"><span>Total monthly</span><span>$${fmt(totalBuy)}</span></div>
+      <div class="leftover">
+        <div class="lo-label">Left after housing</div>
+        <div class="lo-val" style="color:${buyLeft<0?'#c0392b':'#111'}">$${fmt(buyLeft)}</div>
+        <div class="lo-pct">${buyPct}% of take-home goes to housing</div>
+      </div>
+    </div>
+
+    <div class="opt-card ${rentOk?'ok':'warn'}">
+      <div class="opt-head"><span class="opt-title">Renting</span>${badge(rentOk,rentPct)}</div>
+      <div class="line"><span class="lbl">Monthly rent</span><span class="val">$${fmt(rent)}/mo</span></div>
+      <div class="line"><span class="lbl">Renter's insurance</span><span class="val">$${fmt(rentersIns)}/mo</span></div>
+      <div class="total-line"><span>Total monthly</span><span>$${fmt(totalRent)}</span></div>
+      <div class="leftover">
+        <div class="lo-label">Left after housing</div>
+        <div class="lo-val" style="color:${rentLeft<0?'#c0392b':'#111'}">$${fmt(rentLeft)}</div>
+        <div class="lo-pct">${rentPct}% of take-home goes to housing</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rule-box">
+    <div class="rule-title">Understanding the 28/36 Rule</div>
+    <div class="rule-row"><span class="rl">28% — max housing</span><span class="rv">$${fmt(maxHousing)}/mo</span></div>
+    <div class="rule-row"><span class="rl">36% — max total debt</span><span class="rv">$${fmt(maxDebt)}/mo</span></div>
+    <p class="rule-note"><strong>28%</strong> is the most you should spend on housing — rent or mortgage, taxes, insurance, and fees.<br><br><strong>36%</strong> is the most you should spend on all debt combined — housing plus car payments, student loans, and credit cards.</p>
+  </div>
+
+  <button class="edu-btn" onclick="toggleEdu(this)">Learn what these terms mean</button>
+  <div class="edu-box" id="eduBox">
+    <div class="edu-term"><div class="et-name">Take-home pay</div><div class="et-def">What actually hits your bank account after federal and state income taxes, Social Security, Medicare, health insurance, 401(k), and any other deductions are taken out. This is the number your real budget runs on.</div></div>
+    <div class="edu-term"><div class="et-name">Principal</div><div class="et-def">The part of your mortgage payment that pays down what you owe. In the early years of a loan, this is a small slice — most of your payment goes to interest first.</div></div>
+    <div class="edu-term"><div class="et-name">Interest</div><div class="et-def">The cost the lender charges for borrowing money. It's calculated on your remaining loan balance. In year one, the majority of your payment is interest, not ownership.</div></div>
+    <div class="edu-term"><div class="et-name">Property tax</div><div class="et-def">A tax charged by local government based on your home's assessed value. It varies by county and state and is paid whether or not you have a mortgage.</div></div>
+    <div class="edu-term"><div class="et-name">Homeowner's insurance</div><div class="et-def">Required by lenders if you have a mortgage. Covers damage to the home structure and your belongings. Typically $1,500–$2,500 per year depending on your location and home value.</div></div>
+    <div class="edu-term"><div class="et-name">PMI — Private Mortgage Insurance</div><div class="et-def">Required when your down payment is less than 20%. It protects the lender — not you — if you stop making payments. Typically 0.5–1% of the loan per year and can be removed once you've built 20% equity.</div></div>
+    <div class="edu-term"><div class="et-name">HOA — Homeowners Association</div><div class="et-def">A monthly fee in many condo buildings and planned neighborhoods. Covers shared areas and services. Can range from $50 to over $1,000/mo.</div></div>
+    <div class="edu-term"><div class="et-name">The 28% rule</div><div class="et-def">Your total monthly housing cost should not exceed 28% of your take-home pay. This keeps housing from crowding out everything else in your budget.</div></div>
+    <div class="edu-term"><div class="et-name">The 36% rule</div><div class="et-def">All monthly debt payments combined — housing, car, student loans, credit cards — should not exceed 36% of your take-home pay.</div></div>
+    <div class="edu-term"><div class="et-name">Renter's insurance</div><div class="et-def">Covers your personal belongings inside a rental if damaged, stolen, or destroyed. Usually $10–$20/mo and often required by landlords.</div></div>
+  </div>
+  `;
+  document.getElementById('results').innerHTML=html;
+}
+function toggleEdu(btn){
+  const box=document.getElementById('eduBox');
+  box.classList.toggle('open');
+  btn.textContent=box.classList.contains('open')?'Hide term definitions':'Learn what these terms mean';
+}
+function restart(){
+  document.querySelectorAll('input[type=number],input[type=text]').forEach(i=>i.value='');
+  document.getElementById('pmiToggle').checked=false;
+  document.getElementById('pmiField').style.display='none';
+  goStep(1);
+}
+</script>
+</body>
+</html>
