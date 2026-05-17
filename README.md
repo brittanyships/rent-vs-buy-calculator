@@ -4,6 +4,8 @@ An interactive web tool that compares the full cost of renting versus buying a h
 
 **[→ Try the live calculator](https://brittanyships.github.io/rent-vs-buy-calculator/)**
 
+![Calculator Results](screenshot.png)
+
 ---
 
 ## The Problem
